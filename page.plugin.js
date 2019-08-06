@@ -1,13 +1,14 @@
 /*
-    PageGo version v.1.0.0
+    	PageGo version v.1.0.0
 	By icesummer build in July 17, 2019
-	For more information, please visit http://www.icesummer.top
+	For more information, please visit https://github.com/icesummer/Js-jquery-plugin
 	// 请求，组装，计算页码
-	var pageOne = $(this).PageGo({
+	$(this).PageGo({
 			page:page,//分页请参数
 			param:param,// 查询参数
 			elem:{searchId:'#search-div1',listId:'#list',footId:'#pagefoot'}, // 查询，数据，页码标签定位
-			titles:[],// 数据表头,重写pageFunc时可不填
+			titles:['userstate','id'],// 数据表头,重写pageFunc时可不填
+			titlesMap:{'userstate':{'1':'有效','2':'无效'}},//titles中的userstate的值1时显示有效，2显示无效
 			pageFunc:function(brothers,opts,params){
 				//分页请求+组装页面代码：若样式有改变，此处可重写
 			},
@@ -15,8 +16,6 @@
 				// 页码导航代码：默认不重写
 			}
 		});
-	// click查询：
-	pageOne.checkPage({pageNum:2,pageSize:1},param);
 */
 ;(function($,win,undef){
 	var PageGo=function(bodys,settings,inited){
@@ -39,8 +38,8 @@
 			
 			var pageNumShow=opts.pageNumShow||PageGo.util.pageNumShow;
 			var pageNavigate=opts.pageNavigate||PageGo.util.pageNavigate;
-			pageNumShow.call(this,brothers,opts);
-			pageNavigate.call(this,brothers,opts,brothers.result);
+			pageNumShow.call(brothers,brothers,opts);
+			pageNavigate.call(brothers,brothers,opts,brothers.result);
 		},
 		pageFunc:function(brothers,opts,params){
 			var dataHtmlId = opts.elem.listId;
@@ -56,36 +55,66 @@
 				success:function(data){
 					$(dataHtmlId).html("");
 					result = data.data;
-					if(data.code==1){
-						PageGo.util.buildDataHtml(opts.titles,result,dataHtmlId);
-						addDuoxuanClick();
+					if(data.code==1&&result.list.length>0){
+						PageGo.util.buildDataHtml(opts.titles,opts.titlesMap,result,dataHtmlId);
+						if(addDuoxuanClick){
+							addDuoxuanClick();
+						}
 					}else{
-						PageGo.util.noneMsg(brothers,opts,dataHtmlId,"未查询到数据~");
+						if(brothers.params.pageNum>1){
+							//重新查询第一页
+							brothers.params.pageNum=1;
+							PageGo.util.pageOne.call(brothers,brothers,brothers.settings);
+						}else{
+							PageGo.util.noneMsg(brothers,opts,dataHtmlId," 未查询到数据~~");
+						}
 					}
 				},error:function(d){
-					$(dataHtmlId).html("查询出错~");
+					$(dataHtmlId).html("查询出错~~");
 				}
 			})
 			return result;
 		},
-		buildDataHtml:function(titles,data,dataHtmlId){
+		buildDataHtml:function(titles,titlesMap,data,dataHtmlId){
 			for(var i=0;i<data.list.length;i++){
 				var _html='<tr onmouseover="onColor(this)" onmouseout="offColor(this)">';
 				for(var j = 0 ;j<titles.length;j++){
 					if(j==0){
 						_html+='<td><input type="checkbox" name="bike" value="'+data.list[i][titles[j]]+'" class="duoxuan" /></td>';
 					}else{
-						var tname='';
+						var attr='';
+						var attrVal='';
+						var tvalue='';
 						var title=titles[j];
+						console.debug(title+"----------")
 						if(title.indexOf(',')>0){
-							tname+=$.trim(data.list[i][title.split(",")[0]])+'/'
-							tname+=$.trim(data.list[i][title.split(",")[1]])+''
-						}else {tname+=$.trim(data.list[i][title])}
-						_html+='<td>'+tname+'</td>';
+							tvalue+=$.trim(data.list[i][title.split(",")[0]])+'/'
+							tvalue+=$.trim(data.list[i][title.split(",")[1]])+''
+						}else if(title.indexOf(':state')>0&&titlesMap){
+							title=title.substring(0,title.indexOf(':state'));
+							tvalue=titlesMap[title][data.list[i][title]] ;
+							attr='state="'+data.list[i][title]+'"';
+						}else if(title.indexOf(':time')>0){
+							title=title.substring(0,title.indexOf(':time'));
+							tvalue=$.parseFormatTime(data.list[i][title]) ;
+						}else if(title.indexOf(':button')>0&&titlesMap){
+							title=title.substring(0,title.indexOf(':button'));
+							var tvalue='';
+							for (var g = 0; g < titlesMap[title].length; g++) {
+								tvalue+='<a class="button-blue td-a-btn" href="javascript:;">';
+								tvalue+='<span style="color:white;">'+titlesMap[title][g].tname+'</span>';
+								tvalue+='</a>' ;
+							}
+						}else {
+							tvalue=$.trim(data.list[i][title])
+						}
+						_html+='<td '+attr+' titlekey='+title+'>'+tvalue+'</td>';
 					}
 				}
 				_html+='</tr>';
 				$(dataHtmlId).append(_html);
+				$(dataHtmlId).find(".td-a-btn span").click();
+				
 			}
 		},
 		noneMsg:function(brothers,opts,dataHtmlId,msg){
@@ -99,6 +128,7 @@
 		},
 		pageNavigate:function(brothers,opts,data){
 			var footId = opts.elem.footId;
+			$(footId+" .right").html('');
 			var navigatepageNums = data.navigatepageNums;
 			var _html = '<ul class="fy-ym">';
 				for (var i = 0; i < navigatepageNums.length; i++) {
@@ -152,7 +182,7 @@
 		}
 	}
 	PageGo.defaults={
-			page:{pageNum:1,pageSize:10,param:{},title:[],
+			page:{pageNum:1,pageSize:10,param:{},title:[],titleMap:{},
 				result:{
 					"list":[],
 					"total":0,
@@ -180,10 +210,12 @@
 			ajaxPost:false
 		}
 	PageGo.prototype={
-		checkPage:function(pp,param){
-			//(this.settings.page.pageSize);
-			var params=$.extend({},this.params,pp,param);
+		checkPage:function(pape,param){
 			brothers=this;
+			//(this.settings.page.pageSize);
+			var params=$.extend({},this.params,pape,param);
+			brothers.settings.page=pape;
+			brothers.settings.param=param;
 			brothers.params=params;
 			PageGo.util.pageOne.call(brothers,brothers,brothers.settings);
 		}
