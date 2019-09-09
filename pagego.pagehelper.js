@@ -1,8 +1,8 @@
 /*
-    	PageGo version v.1.0.0
+    PageGo version v.1.0.0
 	By icesummer build in July 17, 2019
 	For more information, please visit https://github.com/icesummer/Js-jquery-plugin
-	// 请求，组装，计算页码
+	// 请求，组装，计算页码，配合后台分页插件：https://gitee.com/free/Mybatis_PageHelper
 	$(this).PageGo({
 			page:page,//分页请参数
 			param:param,// 查询参数
@@ -77,10 +77,11 @@
 		},
 		buildDataHtml:function(titles,titlesMap,data,dataHtmlId){
 			for(var i=0;i<data.list.length;i++){
-				var _html='<tr onmouseover="onColor(this)" onmouseout="offColor(this)">';
+				var _html=$('<tr onmouseover="onColor(this)" onmouseout="offColor(this)"></tr>');
 				for(var j = 0 ;j<titles.length;j++){
+					var trFn;
 					if(j==0){
-						_html+='<td><input type="checkbox" name="bike" value="'+data.list[i][titles[j]]+'" class="duoxuan" /></td>';
+						_html.append($('<td><input type="checkbox" name="bike" value="'+data.list[i][titles[j]]+'" class="duoxuan" /></td>'));
 					}else{
 						var attr='';
 						var attrVal='';
@@ -99,22 +100,30 @@
 							tvalue=$.parseFormatTime(data.list[i][title]) ;
 						}else if(title.indexOf(':button')>0&&titlesMap){
 							title=title.substring(0,title.indexOf(':button'));
-							var tvalue='';
+							tvalue=$("<div></div>");
 							for (var g = 0; g < titlesMap[title].length; g++) {
-								tvalue+='<a class="button-blue td-a-btn" href="javascript:;">';
-								tvalue+='<span style="color:white;">'+titlesMap[title][g].tname+'</span>';
-								tvalue+='</a>' ;
+								avalue = $('<a class="button-blue td-a-btn" href="javascript:;">'
+										+'<span style="color:white;">'+titlesMap[title][g].tname+'</span></a>');
+								//tvalue+='<a class="button-blue td-a-btn" href="javascript:;">';
+								//tvalue+='<span style="color:white;">'+titlesMap[title][g].tname+'</span>';
+								//tvalue+='</a>' ;
+								if(titlesMap[title][g].func){
+									trFn = titlesMap[title][g].func;
+									avalue.on("click",trFn);
+								}
+								tvalue.append(avalue);
 							}
 						}else {
-							tvalue=$.trim(data.list[i][title])
+							tvalue=$.trim(data.list[i][title]);
 						}
-						_html+='<td '+attr+' titlekey='+title+'>'+tvalue+'</td>';
+						var _td = $('<td '+attr+' title='+tvalue+' titlekey='+title+'></td>');
+						_td.html(tvalue);
+						_html.append(_td);
+						
 					}
 				}
-				_html+='</tr>';
+				//_html+='</tr>';
 				$(dataHtmlId).append(_html);
-				$(dataHtmlId).find(".td-a-btn span").click();
-				
 			}
 		},
 		noneMsg:function(brothers,opts,dataHtmlId,msg){
