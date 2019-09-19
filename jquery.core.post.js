@@ -1,4 +1,16 @@
-(function(obj) {
+/*
+    jquery.core.post version v.1.0.0
+	By icesummer build in July 17, 2019
+	For more information, please visit https://github.com/icesummer/Js-jquery-plugin
+	// jquery插件
+	var result = _g.js.postAjax('http://localhost:9090/wo/auditReportData');
+	var result = _g.js.postAjax('http://localhost:9090/wo/auditReportData',param);
+	var result = _g.js.postAjax('http://localhost:9090/wo/auditReportData',param,{dataType:'json'});
+	if(result.code==1){
+	}else{
+	}
+*/
+;(function(obj) {
 	var _g = window._g = window.g = obj;
 	// @params index 默认选中第几个下标
 	// @params callback 默认回调函数
