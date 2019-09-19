@@ -7,8 +7,9 @@
 	var result = _g.js.postAjax('http://localhost:9090/wo/auditReportData',param);
 	var result = _g.js.postAjax('http://localhost:9090/wo/auditReportData',param,{dataType:'json'});
 	if(result.code==1){
-	}else{
-	}
+	}else{}
+	
+	var result = _g.js.post('http://localhost:9090/wo/auditReportData2',paramArray);
 */
 ;(function(obj) {
 	var _g = window._g = window.g = obj;
